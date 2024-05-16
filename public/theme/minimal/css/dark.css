@@ -454,3 +454,7 @@ body .ticketDropdown ul::after {
 .articleBody table td {
     border:1px solid var(--neutral);
 }
+
+div .logo {
+  width: 250px;
+}

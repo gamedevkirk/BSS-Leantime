@@ -189,3 +189,7 @@
     color: white;
     background-color: var(--accent1) !important;
 }
+
+div .logo {
+  width: 250px;
+}
