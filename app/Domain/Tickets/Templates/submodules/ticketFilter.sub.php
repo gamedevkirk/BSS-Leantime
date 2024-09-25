@@ -227,7 +227,7 @@ $taskToggle = $tpl->get("enableTaskTypeToggle");
         new SlimSelect({
             select: '#typeSelect',
             settings: {
-                placeholderText: 'All Types',
+                // placeholderText: 'All Types',
             },
         });
         new SlimSelect({
