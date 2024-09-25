@@ -2,8 +2,8 @@
 
 namespace Leantime\Domain\Wiki\Controllers {
 
-    use Leantime\Core\Controller;
-    use Leantime\Core\Frontcontroller;
+    use Leantime\Core\Controller\Controller;
+    use Leantime\Core\Controller\Frontcontroller;
     use Leantime\Domain\Auth\Models\Roles;
     use Leantime\Domain\Auth\Services\Auth;
     use Leantime\Domain\Wiki\Repositories\Wiki as WikiRepository;
@@ -42,8 +42,11 @@ namespace Leantime\Domain\Wiki\Controllers {
             if (isset($_POST['del']) && isset($id)) {
                 $this->wikiRepo->delWiki($id);
 
-                session()->forget("currentIdeaCanvas");
                 $this->tpl->setNotification($this->language->__("notification.wiki_deleted"), "success", "wiki_deleted");
+
+                session()->forget("lastArticle");
+                session()->forget("currentWiki");
+
                 return Frontcontroller::redirect(BASE_URL . "/wiki/show");
             }
 

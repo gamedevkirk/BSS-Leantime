@@ -6,7 +6,8 @@
 
 namespace Leantime\Domain\Notifications\Controllers {
 
-    use Leantime\Core\Controller;
+    use Illuminate\Support\Facades\Cache;
+    use Leantime\Core\Controller\Controller;
     use Symfony\Component\HttpFoundation\JsonResponse;
 
     /**
@@ -22,6 +23,7 @@ namespace Leantime\Domain\Notifications\Controllers {
 
 
             $jsonEncoded = false;
+
             if(session("notification") != ''){
                 $notificationArray = array(
                     "notification" => session("notification") ?? '',

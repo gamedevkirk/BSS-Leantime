@@ -3,12 +3,11 @@
 namespace Leantime\Domain\Files\Controllers;
 
 use Aws\S3\S3Client;
-use Leantime\Core\Controller;
-use Leantime\Core\Environment;
-use Leantime\Core\Frontcontroller;
+use Illuminate\Support\Facades\Log;
+use Leantime\Core\Configuration\Environment;
+use Leantime\Core\Controller\Controller;
 use Leantime\Domain\Files\Repositories\Files as FileRepository;
 use Leantime\Domain\Files\Services\Files as FileService;
-use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
@@ -118,7 +117,10 @@ class Get extends Controller
                     $oStreamResponse->headers->set("Pragma", 'public');
                     $oStreamResponse->headers->set("Cache-Control", 'max-age=86400');
                     $oStreamResponse->headers->set("Last-Modified", gmdate("D, d M Y H:i:s", $sLastModified) . " GMT");
+                }else{
+                    error_log("not caching");
                 }
+
                 $oStreamResponse->setCallback(function () use ($fullPath) {
                     readfile($fullPath);
                 });
@@ -183,11 +185,12 @@ class Get extends Controller
             $response->headers->set('Content-Disposition', "inline; filename=\"" . $realName . "." . $ext . "\"");
 
             return $response;
+
         } catch (\Exception $e) {
 
-            error_log($e);
+            Log::error($e);
 
-            return new Response($e->getMessage(), 500);
+            return new Response("File cannot be found", 400);
         }
     }
 }

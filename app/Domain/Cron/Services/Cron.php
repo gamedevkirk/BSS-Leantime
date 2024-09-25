@@ -2,8 +2,9 @@
 
 namespace Leantime\Domain\Cron\Services {
 
-    use Leantime\Core\Environment;
-    use Leantime\Core\Eventhelpers;
+    use Illuminate\Support\Facades\Log;
+    use Leantime\Core\Configuration\Environment;
+    use Leantime\Core\Events\DispatchesEvents;
     use Leantime\Domain\Audit\Repositories\Audit;
     use Leantime\Domain\Queue\Services\Queue;
     use Leantime\Domain\Reports\Services\Reports;
@@ -11,10 +12,12 @@ namespace Leantime\Domain\Cron\Services {
 
     /**
      *
+     *
+     * @api
      */
     class Cron
     {
-        use Eventhelpers;
+        use DispatchesEvents;
 
         private Audit $auditRepo;
         private Queue $queueSvc;
@@ -28,7 +31,8 @@ namespace Leantime\Domain\Cron\Services {
          * @param Audit       $auditRepo
          * @param Queue       $queueSvc
          * @param Environment $environment
-         */
+         *
+     */
         public function __construct(Audit $auditRepo, Queue $queueSvc, Environment $environment, Reports $reportService)
         {
             $this->auditRepo =  $auditRepo;
@@ -40,7 +44,9 @@ namespace Leantime\Domain\Cron\Services {
         /**
          * @return bool
          * @throws Exception
-         */
+         *
+     * @api
+     */
         public function runCron(): bool
         {
 
@@ -58,7 +64,8 @@ namespace Leantime\Domain\Cron\Services {
 
             if ($timeSince < $this->cronExecTimer) {
                 if ($this->environment->debug) {
-                    error_log("Last cron execution was on " . $lastEvent['date'] . " plz come back later");
+                    //report("Last cron execution was on " . $lastEvent['date'] . " plz come back later");
+                    Log::info("Last cron execution was on " . $lastEvent['date'] . " plz come back later");
                 }
 
                 return false;
@@ -80,7 +87,7 @@ namespace Leantime\Domain\Cron\Services {
                 try {
                     $telemetryResponse->wait();
                 } catch (Exception $e) {
-                    error_log($e);
+                   report($e);
                 }
             }
 

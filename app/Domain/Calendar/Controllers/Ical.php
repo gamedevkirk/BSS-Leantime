@@ -8,9 +8,8 @@
 namespace Leantime\Domain\Calendar\Controllers;
 
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Leantime\Core\Controller;
-use Leantime\Domain\Calendar\Repositories\Calendar as CalendarRepository;
-use Leantime\Core\Frontcontroller;
+use Leantime\Core\Controller\Controller;
+use Leantime\Core\Controller\Frontcontroller;
 use Leantime\Domain\Calendar\Services\Calendar;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
@@ -45,19 +44,27 @@ class Ical extends Controller
      */
     public function run(): RedirectResponse|Response
     {
-        $calId = $_GET['id'];
 
+        $calId = $_GET['id'] ?? "";
         $idParts = explode("_", $calId);
 
         if (count($idParts) != 2) {
             return Frontcontroller::redirect(BASE_URL . "/errors/404");
         }
 
-        $calendar = $this->calendarService->getIcalByHash($idParts[1], $idParts[0]);
+        try {
 
-        return new Response($calendar->get(), 200, [
-            'Content-Type' => 'text/calendar; charset=utf-8',
-            'Content-Disposition' => 'attachment; filename="leantime-calendar.ics"',
-        ]);
+            $calendar = $this->calendarService->getIcalByHash($idParts[1], $idParts[0]);
+
+            return new Response($calendar->get(), 200, [
+                'Content-Type' => 'text/calendar; charset=utf-8',
+                'Content-Disposition' => 'attachment; filename="leantime-calendar.ics"',
+            ]);
+
+        }catch(\Exception $e) {
+            return Frontcontroller::redirect(BASE_URL . "/errors/404");
+        }
+
+
     }
 }

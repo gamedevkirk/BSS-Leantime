@@ -8,41 +8,43 @@ namespace Leantime\Domain\Reports\Services {
     use GuzzleHttp\Client;
     use GuzzleHttp\Promise\PromiseInterface;
     use Illuminate\Contracts\Container\BindingResolutionException;
+    use Leantime\Core\Configuration\AppSettings as AppSettingCore;
+    use Leantime\Core\Configuration\Environment as EnvironmentCore;
+    use Leantime\Core\Events\DispatchesEvents;
     use Leantime\Core\Template as TemplateCore;
-    use Leantime\Core\AppSettings as AppSettingCore;
-    use Leantime\Core\Environment as EnvironmentCore;
-    use Leantime\Domain\Projects\Repositories\Projects as ProjectRepository;
-    use Leantime\Domain\Reactions\Repositories\Reactions;
-    use Leantime\Domain\Sprints\Repositories\Sprints as SprintRepository;
-    use Leantime\Domain\Reports\Repositories\Reports as ReportRepository;
-    use Leantime\Domain\Setting\Repositories\Setting as SettingRepository;
-    use Leantime\Domain\Tickets\Repositories\Tickets as TicketRepository;
-    use Leantime\Domain\Ideas\Repositories\Ideas as IdeaRepository;
-    use Leantime\Domain\Users\Repositories\Users as UserRepository;
     use Leantime\Domain\Clients\Repositories\Clients as ClientRepository;
     use Leantime\Domain\Comments\Repositories\Comments as CommentRepository;
-    use Leantime\Domain\Timesheets\Repositories\Timesheets as TimesheetRepository;
     use Leantime\Domain\Eacanvas\Repositories\Eacanvas as EacanvaRepository;
+    use Leantime\Domain\Goalcanvas\Repositories\Goalcanvas as GoalcanvaRepository;
+    use Leantime\Domain\Ideas\Repositories\Ideas as IdeaRepository;
     use Leantime\Domain\Insightscanvas\Repositories\Insightscanvas as InsightscanvaRepository;
     use Leantime\Domain\Leancanvas\Repositories\Leancanvas as LeancanvaRepository;
-    use Leantime\Domain\Obmcanvas\Repositories\Obmcanvas as ObmcanvaRepository;
-    use Leantime\Domain\Retroscanvas\Repositories\Retroscanvas as RetroscanvaRepository;
-    use Leantime\Domain\Goalcanvas\Repositories\Goalcanvas as GoalcanvaRepository;
-    use Leantime\Domain\Valuecanvas\Repositories\Valuecanvas as ValuecanvaRepository;
     use Leantime\Domain\Minempathycanvas\Repositories\Minempathycanvas as MinempathycanvaRepository;
+    use Leantime\Domain\Obmcanvas\Repositories\Obmcanvas as ObmcanvaRepository;
+    use Leantime\Domain\Projects\Repositories\Projects as ProjectRepository;
+    use Leantime\Domain\Reactions\Repositories\Reactions;
+    use Leantime\Domain\Reports\Repositories\Reports as ReportRepository;
+    use Leantime\Domain\Retroscanvas\Repositories\Retroscanvas as RetroscanvaRepository;
     use Leantime\Domain\Riskscanvas\Repositories\Riskscanvas as RiskscanvaRepository;
     use Leantime\Domain\Sbcanvas\Repositories\Sbcanvas as SbcanvaRepository;
-    use Leantime\Domain\Swotcanvas\Repositories\Swotcanvas as SwotcanvaRepository;
-    use Leantime\Domain\Wiki\Repositories\Wiki as WikiRepository;
+    use Leantime\Domain\Setting\Repositories\Setting as SettingRepository;
     use Leantime\Domain\Setting\Services\Setting as SettingsService;
-    use Leantime\Core\Eventhelpers;
+    use Leantime\Domain\Sprints\Repositories\Sprints as SprintRepository;
+    use Leantime\Domain\Swotcanvas\Repositories\Swotcanvas as SwotcanvaRepository;
+    use Leantime\Domain\Tickets\Repositories\Tickets as TicketRepository;
+    use Leantime\Domain\Timesheets\Repositories\Timesheets as TimesheetRepository;
+    use Leantime\Domain\Users\Repositories\Users as UserRepository;
+    use Leantime\Domain\Valuecanvas\Repositories\Valuecanvas as ValuecanvaRepository;
+    use Leantime\Domain\Wiki\Repositories\Wiki as WikiRepository;
 
     /**
      *
+     *
+     * @api
      */
     class Reports
     {
-        use Eventhelpers;
+        use DispatchesEvents;
 
         private TemplateCore $tpl;
         private AppSettingCore $appSettings;
@@ -62,7 +64,8 @@ namespace Leantime\Domain\Reports\Services {
          * @param ReportRepository  $reportRepository
          * @param SettingRepository $settings
          * @param TicketRepository  $ticketRepository
-         */
+         *
+     */
         public function __construct(
             TemplateCore $tpl,
             AppSettingCore $appSettings,
@@ -86,7 +89,9 @@ namespace Leantime\Domain\Reports\Services {
         /**
          * @return void
          * @throws BindingResolutionException
-         */
+         *
+     * @api
+     */
         public function dailyIngestion(): void
         {
 
@@ -134,7 +139,9 @@ namespace Leantime\Domain\Reports\Services {
         /**
          * @param $projectId
          * @return array|false
-         */
+         *
+     * @api
+     */
         public function getFullReport($projectId): false|array
         {
             return $this->reportRepository->getFullReport($projectId);
@@ -145,7 +152,9 @@ namespace Leantime\Domain\Reports\Services {
          * @param $sprintId
          * @return array|bool
          * @throws BindingResolutionException
-         */
+         *
+     * @api
+     */
         public function getRealtimeReport($projectId, $sprintId): array|bool
         {
             return $this->reportRepository->runTicketReport($projectId, $sprintId);
@@ -170,7 +179,9 @@ namespace Leantime\Domain\Reports\Services {
          * @param SwotcanvaRepository       $swotCanvasRepo
          * @param WikiRepository            $wikiRepo
          * @return array
-         */
+         *
+     * @api
+     */
         public function getAnonymousTelemetry(
             IdeaRepository $ideaRepository,
             UserRepository $userRepository,
@@ -294,7 +305,9 @@ namespace Leantime\Domain\Reports\Services {
         /**
          * @return bool|PromiseInterface
          * @throws BindingResolutionException
-         */
+         *
+     * @api
+     */
         public function sendAnonymousTelemetry(): bool|PromiseInterface
         {
 
@@ -327,7 +340,7 @@ namespace Leantime\Domain\Reports\Services {
 
                         return $promise;
                     } catch (\Exception $e) {
-                        error_log($e);
+                        report($e);
                         return false;
                     }
                 }
@@ -339,7 +352,9 @@ namespace Leantime\Domain\Reports\Services {
         /**
          * @return false|void
          * @throws Exception
-         */
+         *
+     * @api
+     */
         public function optOutTelemetry()
         {
             $date_utc = new DateTime("now", new DateTimeZone("UTC"));
@@ -417,7 +432,7 @@ namespace Leantime\Domain\Reports\Services {
                     session(["skipTelemetry" => true]);
                 });
             } catch (\Exception $e) {
-                error_log($e);
+                report($e);
 
                 session(["skipTelemetry" => true]);
                 return false;
@@ -430,7 +445,7 @@ namespace Leantime\Domain\Reports\Services {
             try {
                 $promise->wait();
             } catch (\Exception $e) {
-                error_log($e);
+                report($e);
             }
 
             return;
@@ -440,7 +455,9 @@ namespace Leantime\Domain\Reports\Services {
          *
          * @return array
          * @throws Exception
-         */
+         *
+     * @api
+     */
         public function getProjectStatusReport()
         {
 

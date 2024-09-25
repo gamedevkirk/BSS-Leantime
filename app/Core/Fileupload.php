@@ -7,9 +7,10 @@ use Aws\S3\S3Client;
 use Exception;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use Leantime\Core\Configuration\Environment;
+use Leantime\Core\Events\DispatchesEvents;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /**
  * Fileupload class - Data filuploads
@@ -19,7 +20,7 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class Fileupload
 {
-    use Eventhelpers;
+    use DispatchesEvents;
 
     /**
      * @var    string path on the server
@@ -288,7 +289,7 @@ class Fileupload
 
                 return $url;
             } catch (S3Exception $e) {
-                error_log($e, 0);
+                report($e);
                 return false;
             }
         } else {
@@ -297,7 +298,7 @@ class Fileupload
                     return "/userfiles/" . $this->file_name;
                 }
             } catch (Exception $e) {
-                error_log($e, 0);
+                report($e);
                 return false;
             }
         }
@@ -329,10 +330,10 @@ class Fileupload
 
             return true;
         } catch (S3Exception $e) {
-            error_log($e, 0);
+            report($e);
             return false;
         } catch (RequestException $e) {
-            error_log($e, 0);
+            report($e);
             return false;
         }
     }
@@ -351,7 +352,7 @@ class Fileupload
                 return true;
             }
         } catch (Exception $e) {
-            error_log($e, 0);
+            report($e);
             return false;
         }
 
@@ -376,7 +377,10 @@ class Fileupload
         );
 
         $responseFailure = new Response(file_get_contents(ROOT . '/dist/images/doc.png'));
+        $sLastModified = filemtime(ROOT . '/dist/images/doc.png');
         $responseFailure->headers->set('Content-Type', 'image/png');
+        $responseFailure->headers->set("Cache-Control", 'max-age=86400');
+        $responseFailure->headers->set("Last-Modified", gmdate("D, d M Y H:i:s", $sLastModified) . " GMT");
 
         if ($this->config->useS3 && $fullPath == '') {
             try {
@@ -392,11 +396,11 @@ class Fileupload
 
                 foreach (
                     [
-                    'Content-Type' => $result['ContentType'],
-                    'Pragma' => 'public',
-                    'Cache-Control' => 'max-age=86400',
-                    'Expires' => gmdate('D, d M Y H:i:s \G\M\T', time() + 86400),
-                    'Content-disposition' => 'inline; filename="' . $imageName . '";',
+                        'Content-Type' => $result['ContentType'],
+                        'Pragma' => 'public',
+                        'Cache-Control' => 'max-age=86400',
+                        'Expires' => gmdate('D, d M Y H:i:s \G\M\T', time() + 86400),
+                        'Content-disposition' => 'inline; filename="' . $imageName . '";',
                     ] as $header => $value
                 ) {
                     $response->headers->set($header, $value);

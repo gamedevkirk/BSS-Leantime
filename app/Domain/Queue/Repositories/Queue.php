@@ -2,7 +2,7 @@
 
 namespace Leantime\Domain\Queue\Repositories {
 
-    use Leantime\Core\Db as DbCore;
+    use Leantime\Core\Db\Db as DbCore;
     use Leantime\Domain\Queue\Workers\Workers;
     use Leantime\Domain\Users\Repositories\Users as UserRepo;
     use PDO;
@@ -48,10 +48,15 @@ namespace Leantime\Domain\Queue\Repositories {
                 } elseif (filter_var($recipient, FILTER_VALIDATE_EMAIL)) {
                     $theuser = $this->users->getUserByEmail($recipient);
                 } else {
-                    return;
+                    //skip invalid users
+                    continue;
                 }
-                // TODO : exit if no user was found ?
-                // Low risk but still it could be deleted in the meantime
+
+                //User might not be set because it's a new user
+                if (!$theuser) {
+                    continue;
+                }
+
                 $userId = $theuser['id'];
                 $userEmail = $theuser['username'];
                 $msghash = md5($thedate . $subject . $message . $userEmail . $projectId);
@@ -68,7 +73,7 @@ namespace Leantime\Domain\Queue\Repositories {
                 try {
                     $stmn->execute();
                 } catch (\PDOException  $e) {
-                    error_log($e);
+                   report($e);
                 }
 
                 $stmn->closeCursor();
@@ -156,7 +161,7 @@ namespace Leantime\Domain\Queue\Repositories {
             try {
                 $stmn->execute();
             } catch (\PDOException  $e) {
-                error_log($e);
+                report($e);
             }
 
             $stmn->closeCursor();

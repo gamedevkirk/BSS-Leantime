@@ -2,19 +2,16 @@
 
 namespace Leantime\Domain\Timesheets\Controllers;
 
-use Carbon\Carbon;
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Leantime\Core\Controller;
-use Leantime\Core\Support\DateTimeHelper;
+use Leantime\Core\Controller\Controller;
 use Leantime\Domain\Auth\Models\Roles;
-use Leantime\Domain\Timesheets\Repositories\Timesheets as TimesheetRepository;
+use Leantime\Domain\Auth\Services\Auth;
 use Leantime\Domain\Projects\Repositories\Projects as ProjectRepository;
 use Leantime\Domain\Tickets\Repositories\Tickets as TicketRepository;
+use Leantime\Domain\Timesheets\Repositories\Timesheets as TimesheetRepository;
 use Leantime\Domain\Timesheets\Services\Timesheets as TimesheetService;
 use Leantime\Domain\Users\Repositories\Users as UserRepository;
-use Leantime\Domain\Auth\Services\Auth;
 use PHPUnit\Exception;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -84,7 +81,9 @@ class ShowMy extends Controller
         }
 
         $myTimesheets = $this->timesheetService->getWeeklyTimesheets(-1, $fromDate, session("userdata.id"));
+        $existingTicketIds = array_map(fn($item) => $item['ticketId'], $myTimesheets);
 
+        $this->tpl->assign('existingTicketIds', $existingTicketIds);
         $this->tpl->assign('dateFrom', $fromDate);
         $this->tpl->assign('actKind', $kind);
         $this->tpl->assign('kind', $this->timesheetRepo->kind);
@@ -126,6 +125,11 @@ class ShowMy extends Controller
                 if ($ticketId === "new" || $ticketId === 0) {
                     $ticketId = (int)$postData["ticketId"];
                     $kind = $postData["kindId"];
+
+                    if($ticketId == 0 && $hours > 0){
+                        $this->tpl->setNotification("Task ID is required for new entries", "error", "save_timesheet");
+                        return;
+                    }
                 }
 
                 $values = array(
@@ -144,7 +148,7 @@ class ShowMy extends Controller
                         $this->tpl->setNotification("Timesheet saved successfully", "success", "save_timesheet");
                     } catch (\Exception $e) {
                         $this->tpl->setNotification("Error logging time: " . $e->getMessage(), "error", "save_timesheet");
-                        error_log($e);
+                        report($e);
                         continue;
                     }
                 }

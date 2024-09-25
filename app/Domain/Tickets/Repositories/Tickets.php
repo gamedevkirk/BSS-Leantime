@@ -4,8 +4,8 @@ namespace Leantime\Domain\Tickets\Repositories {
 
     use Carbon\CarbonImmutable;
     use Illuminate\Contracts\Container\BindingResolutionException;
-    use Leantime\Core\Eventhelpers as EventhelperCore;
-    use Leantime\Core\Db as DbCore;
+    use Leantime\Core\Db\Db as DbCore;
+    use Leantime\Core\Events\DispatchesEvents as EventhelperCore;
     use Leantime\Core\Language as LanguageCore;
     use Leantime\Domain\Users\Services\Users;
     use PDO;
@@ -187,7 +187,12 @@ namespace Leantime\Domain\Tickets\Repositories {
 
             //Override the state values that are in the db
             if ($values !== false) {
+
                 $statusList = array();
+
+                //Archive is required and protected.
+                //Adding the original version back in case folks removed it
+                $statusList[-1] = $this->statusListSeed[-1];
 
                 foreach (unserialize($values['value']) as $key => $status) {
                     if (is_int($key)) {
@@ -197,7 +202,7 @@ namespace Leantime\Domain\Tickets\Repositories {
                         if (!is_array($status)) {
                             $statusList[$key] = $this->statusListSeed[$key];
 
-                            if (is_array($statusList[$key]) && isset($statusList[$key]["name"])) {
+                            if (is_array($statusList[$key]) && isset($statusList[$key]["name"]) && $key !== -1) {
                                 $statusList[$key]["name"] = $status;
                             }
                         } else {
@@ -380,9 +385,9 @@ namespace Leantime\Domain\Tickets\Repositories {
          * @param null   $limit
          * @return array | bool
          */
-        public function getAllBySearchCriteria(array $searchCriteria, string $sort = 'standard', $limit = null): bool|array
+        public function getAllBySearchCriteria(array $searchCriteria, string $sort = 'standard', $limit = null, $includeCounts = true): bool|array
         {
-            $query = <<<SQL
+            $query = "
                 SELECT
                     zp_tickets.id,
                     zp_tickets.headline,
@@ -395,7 +400,7 @@ namespace Leantime\Domain\Tickets\Repositories {
                     zp_tickets.dateToFinish,
                     zp_tickets.projectId,
                     zp_tickets.priority,
-                    IF(zp_tickets.type <> "", zp_tickets.type, "task") AS type,
+                    IF(zp_tickets.type <> '', zp_tickets.type, 'task') AS type,
                     zp_tickets.status,
                     zp_tickets.tags,
                     zp_tickets.editorId,
@@ -417,10 +422,23 @@ namespace Leantime\Domain\Tickets\Repositories {
                     t2.lastname AS editorLastname,
                     t2.profileId AS editorProfileId,
                     milestone.headline AS milestoneHeadline,
-                    IF((milestone.tags IS NULL OR milestone.tags = ''), 'var(--grey)', milestone.tags) AS milestoneColor,
-                    (SELECT COUNT(*) FROM zp_comment WHERE zp_tickets.id = zp_comment.moduleId and zp_comment.module = 'ticket') AS commentCount,
-                    (SELECT COUNT(*) FROM zp_file WHERE zp_tickets.id = zp_file.moduleId and zp_file.module = 'ticket') AS fileCount,
-                    (SELECT COUNT(*) FROM zp_tickets AS subtasks WHERE zp_tickets.id = subtasks.dependingTicketId AND subtasks.dependingTicketId > 0) AS subtaskCount,
+                    IF((milestone.tags IS NULL OR milestone.tags = ''), 'var(--grey)', milestone.tags) AS milestoneColor,";
+
+                if($includeCounts) {
+                    $query .= "
+                        (SELECT COUNT(*) FROM zp_comment WHERE zp_tickets.id = zp_comment.moduleId and zp_comment.module = 'ticket') AS commentCount,
+                        (SELECT COUNT(*) FROM zp_file WHERE zp_tickets.id = zp_file.moduleId and zp_file.module = 'ticket') AS fileCount,
+                        (SELECT COUNT(*) FROM zp_tickets AS subtasks WHERE zp_tickets.id = subtasks.dependingTicketId AND subtasks.dependingTicketId > 0) AS subtaskCount,
+                    ";
+                }else{
+                    $query .= "
+                        0 AS commentCount,
+                        0 AS fileCount,
+                        0 AS subtaskCount,
+                    ";
+                }
+
+                $query .= "
                     parent.headline AS parentHeadline
                 FROM
                     zp_tickets
@@ -438,7 +456,7 @@ namespace Leantime\Domain\Tickets\Repositories {
                     OR (zp_projects.psettings = 'client' AND zp_projects.clientId = :clientId)
                     OR (requestor.role >= 40)
                 )
-            SQL;
+            ";
 
             if (isset($searchCriteria["excludeType"]) && $searchCriteria["excludeType"]  != "") {
                 $query .= " AND zp_tickets.type <> :excludeType";
@@ -610,7 +628,7 @@ namespace Leantime\Domain\Tickets\Repositories {
 
             $stmn->execute();
 
-            $values = $stmn->fetchAll();
+            $values = $stmn->fetchAll(PDO::FETCH_ASSOC);
             $stmn->closeCursor();
 
             return $values;
@@ -642,7 +660,9 @@ namespace Leantime\Domain\Tickets\Repositories {
                     zp_tickets.planHours,
                     zp_tickets.editFrom,
                     zp_tickets.editTo,
-                    zp_tickets.hourRemaining
+                    zp_tickets.hourRemaining,
+                    zp_projects.name AS projectName,
+                    zp_projects.details AS projectDescription
                 FROM
                     zp_tickets
                 LEFT JOIN zp_projects ON zp_tickets.projectId = zp_projects.id
@@ -693,7 +713,6 @@ namespace Leantime\Domain\Tickets\Repositories {
             $stmn->closeCursor();
 
             return $values;
-
         }
 
         public function getScheduledTasks(CarbonImmutable $dateFrom, CarbonImmutable $dateTo, ?int $userId = null)
@@ -881,6 +900,7 @@ namespace Leantime\Domain\Tickets\Repositories {
 						zp_tickets.dependingTicketId,
 						zp_tickets.milestoneid,
 						zp_projects.name AS projectName,
+						zp_projects.details AS projectDescription,
 						zp_clients.name AS clientName,
 						zp_user.firstname AS userFirstname,
 						zp_user.lastname AS userLastname,
@@ -1726,21 +1746,6 @@ namespace Leantime\Domain\Tickets\Repositories {
          * @param $params
          * @return bool
          */
-        /**
-         * @param $id
-         * @param $params
-         * @return bool
-         */
-        /**
-         * @param $id
-         * @param $params
-         * @return bool
-         */
-        /**
-         * @param $id
-         * @param $params
-         * @return bool
-         */
         public function patchTicket($id, $params): bool
         {
 
@@ -1792,6 +1797,7 @@ namespace Leantime\Domain\Tickets\Repositories {
 				description=:description,
 				projectId=:projectId,
 				status = :status,
+                date = :date,
 				dateToFinish = :dateToFinish,
 				sprint = :sprint,
 				storypoints = :storypoints,
@@ -1814,6 +1820,7 @@ namespace Leantime\Domain\Tickets\Repositories {
             $stmn->bindValue(':description', $values['description'], PDO::PARAM_STR);
             $stmn->bindValue(':projectId', $values['projectId'], PDO::PARAM_STR);
             $stmn->bindValue(':status', $values['status'], PDO::PARAM_STR);
+            $stmn->bindValue(':date', $values['date'], PDO::PARAM_STR);
             $stmn->bindValue(':dateToFinish', $values['dateToFinish'], PDO::PARAM_STR);
             $stmn->bindValue(':sprint', $values['sprint'], PDO::PARAM_STR);
             $stmn->bindValue(':storypoints', $values['storypoints'], PDO::PARAM_STR);
@@ -2064,5 +2071,4 @@ namespace Leantime\Domain\Tickets\Repositories {
             return true;
         }
     }
-
 }

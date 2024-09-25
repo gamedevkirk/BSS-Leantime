@@ -4,17 +4,17 @@ namespace Leantime\Domain\Tickets\Controllers {
 
     use Carbon\Carbon;
     use Illuminate\Contracts\Container\BindingResolutionException;
-    use Leantime\Core\Controller;
+    use Leantime\Core\Controller\Controller;
+    use Leantime\Core\Controller\Frontcontroller;
     use Leantime\Core\Support\FromFormat;
-    use Leantime\Domain\Projects\Services\Projects as ProjectService;
-    use Leantime\Domain\Tickets\Services\Tickets as TicketService;
-    use Leantime\Domain\Sprints\Services\Sprints as SprintService;
-    use Leantime\Domain\Files\Services\Files as FileService;
     use Leantime\Domain\Comments\Services\Comments as CommentService;
+    use Leantime\Domain\Files\Services\Files as FileService;
+    use Leantime\Domain\Projects\Services\Projects as ProjectService;
+    use Leantime\Domain\Sprints\Services\Sprints as SprintService;
+    use Leantime\Domain\Tickets\Services\Tickets as TicketService;
     use Leantime\Domain\Timesheets\Services\Timesheets as TimesheetService;
     use Leantime\Domain\Users\Services\Users as UserService;
     use Symfony\Component\HttpFoundation\Response;
-    use Leantime\Core\Frontcontroller;
 
     /**
      *
@@ -110,7 +110,6 @@ namespace Leantime\Domain\Tickets\Controllers {
 
                 $this->tpl->setNotification($this->language->__("notifications.comment_deleted_error"), "error");
             }
-
             //Delete Subtask
             if (isset($params['delSubtask']) === true) {
 
@@ -205,8 +204,15 @@ namespace Leantime\Domain\Tickets\Controllers {
                 $tab = "#files";
             }
 
-            //Add a comment
-            if (isset($params['comment']) === true && isset($params['text']) && $params['text'] != '') {
+            // Add or edit a comment
+            if (isset($params['comment']) === true && isset($params['text']) && $params['text'] != '' && isset($params['edit-comment-helper']) && $params['edit-comment-helper'] !== "") {
+                if ($this->commentService->editComment($_POST, (int)$params['edit-comment-helper'])) {
+                    $this->tpl->setNotification($this->language->__("notifications.comment_edited_success"), "success");
+                } else {
+                    $this->tpl->setNotification($this->language->__("notifications.comment_edit_error"), "error");
+                }
+                $tab = "#comment";
+            } else if (isset($params['comment']) === true && isset($params['text']) && $params['text'] != '') {
                 if ($this->commentService->addComment($_POST, "ticket", $id, $ticket)) {
                     $this->tpl->setNotification($this->language->__("notifications.comment_create_success"), "success");
                 } else {

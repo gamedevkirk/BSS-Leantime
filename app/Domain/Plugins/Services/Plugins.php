@@ -4,28 +4,33 @@ namespace Leantime\Domain\Plugins\Services {
 
     use Exception;
     use Illuminate\Contracts\Container\BindingResolutionException;
-    use Leantime\Core\Environment as EnvironmentCore;
-    use Leantime\Core\Eventhelpers;
+    use Illuminate\Http\Client\RequestException;
+    use Illuminate\Support\Facades\Cache;
+    use Illuminate\Support\Facades\File;
+    use Illuminate\Support\Facades\Http;
+    use Illuminate\Support\Str;
+    use Leantime\Core\Configuration\Environment as EnvironmentCore;
+    use Leantime\Core\Events\DispatchesEvents;
+    use Leantime\Domain\Plugins\Models\InstalledPlugin;
     use Leantime\Domain\Plugins\Models\MarketplacePlugin;
     use Leantime\Domain\Plugins\Repositories\Plugins as PluginRepository;
-    use Leantime\Domain\Plugins\Models\InstalledPlugin;
-    use Illuminate\Support\Facades\Http;
-    use Illuminate\Http\Client\RequestException;
     use Leantime\Domain\Setting\Services\Setting as SettingsService;
     use Leantime\Domain\Users\Services\Users as UsersService;
-    use Illuminate\Support\Facades\File;
-    use Illuminate\Support\Str;
 
     /**
      *
+     *
+     * @api
      */
     class Plugins
     {
-        use Eventhelpers;
+        use DispatchesEvents;
 
         /**
          * @var string
-         */
+         *
+     * @api
+     */
         private string $pluginDirectory =  ROOT . "/../app/Plugins/";
 
         /**
@@ -35,7 +40,9 @@ namespace Leantime\Domain\Plugins\Services {
          * marketplace: Plugin comes from maarketplace.
          *
          * @var array
-         */
+         *
+     * @api
+     */
         private array $pluginTypes = [
             'custom' => "custom",
             'system' => "system",
@@ -48,7 +55,9 @@ namespace Leantime\Domain\Plugins\Services {
          * folder: Folder plugins
          *
          * @var array
-         */
+         *
+     * @api
+     */
         private array $pluginFormat = [
             'phar' => 'phar',
             'folder' => 'phar',
@@ -58,7 +67,9 @@ namespace Leantime\Domain\Plugins\Services {
          * Marketplace URL
          *
          * @var string
-         */
+         *
+     * @api
+     */
         public string $marketplaceUrl;
 
         /**
@@ -80,7 +91,9 @@ namespace Leantime\Domain\Plugins\Services {
 
         /**
          * @return array|false
-         */
+         *
+     * @api
+     */
         public function getAllPlugins(bool $enabledOnly = false): false|array
         {
             $installedPluginsById = [];
@@ -117,7 +130,7 @@ namespace Leantime\Domain\Plugins\Services {
                         $installedPluginsById[$plugin]->enabled = true;
                         $installedPluginsById[$plugin]->type = $this->pluginTypes['system'];
                     } catch (Exception $e) {
-                        error_log($e);
+                        report($e);
                     }
                 });
             }
@@ -125,8 +138,9 @@ namespace Leantime\Domain\Plugins\Services {
             /**
              * Filters array of plugins from database and config before returning
              * @var array $allPlugins
+             *
              */
-            $allPlugins = static::dispatch_filter("beforeReturnAllPlugins", $installedPluginsById, array("enabledOnly" => $enabledOnly));
+            $allPlugins = self::dispatch_filter("beforeReturnAllPlugins", $installedPluginsById, array("enabledOnly" => $enabledOnly));
 
             return $allPlugins;
         }
@@ -135,8 +149,10 @@ namespace Leantime\Domain\Plugins\Services {
          * @param $pluginFolder
          * @return bool
          * @throws BindingResolutionException
-         */
-        public function isPluginEnabled($pluginFolder): bool
+         *
+     * @api
+     */
+        public function isEnabled($pluginFolder): bool
         {
             $plugins = $this->getEnabledPlugins();
 
@@ -152,32 +168,39 @@ namespace Leantime\Domain\Plugins\Services {
         /**
          * @return array|false|mixed
          * @throws BindingResolutionException
+         *
+         * @api
          */
         public function getEnabledPlugins(): mixed
         {
 
-            if (session()->exists("enabledPlugins")) {
-                $enabledPlugins = static::dispatch_filter("beforeReturnCachedPlugins", session("enabledPlugins"), array("enabledOnly" => true));
+            if (Cache::store("installation")->has("enabledPlugins")) {
+                $enabledPlugins = static::dispatch_filter("beforeReturnCachedPlugins", Cache::store("installation")->get("enabledPlugins"), array("enabledOnly" => true));
                 return $enabledPlugins;
             }
 
-            session(["enabledPlugins" => $this->getAllPlugins(enabledOnly: true)]);
+            Cache::store("installation")->set("enabledPlugins", $this->getAllPlugins(enabledOnly: true));
 
             /**
              * Filters session array of enabled plugins before returning
              * @var array $enabledPlugins
+             *
              */
-            $enabledPlugins = static::dispatch_filter("beforeReturnCachedPlugins", session("enabledPlugins"), array("enabledOnly" => true));
-            return $enabledPlugins;
+            return self::dispatch_filter(
+                hook: "beforeReturnCachedPlugins",
+                payload: Cache::store("installation")->get("enabledPlugins"),
+                available_params: array("enabledOnly" => true));
+
         }
 
         /**
          * @return InstalledPlugin[]
          * @throws BindingResolutionException
-         */
+         *
+     * @api
+     */
         public function discoverNewPlugins(): array
         {
-
             $this->clearCache();
 
             $installedPluginNames = array_map(fn ($plugin) => $plugin->foldername, $this->getAllPlugins());
@@ -232,10 +255,11 @@ namespace Leantime\Domain\Plugins\Services {
          * @param $pluginFolder
          * @return false|string
          * @throws BindingResolutionException
-         */
+         *
+     * @api
+     */
         public function installPlugin($pluginFolder): false|string
         {
-
             $this->clearCache();
 
             $pluginFolder = Str::studly($pluginFolder);
@@ -243,7 +267,7 @@ namespace Leantime\Domain\Plugins\Services {
             try {
                 $plugin = $this->createPluginFromComposer($pluginFolder);
             } catch (\Exception $e) {
-                error_log($e);
+                report($e);
                 return false;
             }
 
@@ -254,7 +278,7 @@ namespace Leantime\Domain\Plugins\Services {
                 try {
                     $newPluginSvc->install();
                 } catch (Exception $e) {
-                    error_log($e);
+                    report($e);
                     return false;
                 }
             }
@@ -265,6 +289,8 @@ namespace Leantime\Domain\Plugins\Services {
         /**
          * @param int $id
          * @return bool
+         *
+         * @api
          */
         public function enablePlugin(int $id): bool
         {
@@ -282,6 +308,7 @@ namespace Leantime\Domain\Plugins\Services {
                 $signature = $phar->getSignature();
 
                 $response = Http::withoutVerifying()->get("$this->marketplaceUrl", [
+                    'wp-api' => 'software-api',
                     'request' => 'activation',
                     'license_key' => $pluginModel->license,
                     'product_id' => $pluginModel->id,
@@ -289,6 +316,8 @@ namespace Leantime\Domain\Plugins\Services {
                     'phar_hash' => $signature,
                     'user_count' => $this->usersService->getNumberOfUsers(activeOnly: true, includeApi: false),
                 ]);
+
+                $content = $response->body();
 
                 if (! $response->ok()) {
                     return false;
@@ -301,7 +330,9 @@ namespace Leantime\Domain\Plugins\Services {
         /**
          * @param int $id
          * @return bool
-         */
+         *
+     * @api
+     */
         public function disablePlugin(int $id): bool
         {
             $this->clearCache();
@@ -338,10 +369,13 @@ namespace Leantime\Domain\Plugins\Services {
          * @param int $id
          * @return bool
          * @throws BindingResolutionException
-         */
+         *
+     * @api
+     */
         public function removePlugin(int $id): bool
         {
             $this->clearCache();
+
             /** @var PluginModel|false $plugin */
             $plugin = $this->pluginRepository->getPlugin($id);
 
@@ -358,7 +392,7 @@ namespace Leantime\Domain\Plugins\Services {
                     try {
                         $newPluginSvc->uninstall();
                     } catch (\Exception $e) {
-                        error_log($e);
+                        report($e);
                         return false;
                     }
                 }
@@ -375,7 +409,9 @@ namespace Leantime\Domain\Plugins\Services {
          * @param InstalledPlugin $plugin
          * @return string
          * @throws BindingResolutionException
-         */
+         *
+     * @api
+     */
         public function getPluginClassName(InstalledPlugin $plugin): string
         {
             return app()->getNamespace()
@@ -389,7 +425,9 @@ namespace Leantime\Domain\Plugins\Services {
          * @param int    $page
          * @param string $query
          * @return MarketplacePlugin[]
-         */
+         *
+     * @api
+     */
         public function getMarketplacePlugins(int $page, string $query = ''): array
         {
             $plugins = Http::withoutVerifying()->get(
@@ -414,6 +452,7 @@ namespace Leantime\Domain\Plugins\Services {
                         ->set('vendorEmail', $plugin['vendor_email'] ?? '')
                         ->set('startingPrice', '$' . ($plugin['price'] ?? '') . (! empty($plugin['sub_interval']) ? '/' . $plugin['sub_interval'] : ''))
                         ->set('rating', $plugin['rating'] ?? '')
+                        ->set('version', $plugin['version'] ?? '')
                         ->get();
                 }
             }
@@ -424,7 +463,9 @@ namespace Leantime\Domain\Plugins\Services {
         /**
          * @param string $identifier
          * @return MarketplacePlugin[]
-         */
+         *
+     * @api
+     */
         public function getMarketplacePlugin(string $identifier): MarketplacePlugin|false
         {
             $response = Http::withoutVerifying()->get("$this->marketplaceUrl/ltmp-api/details/$identifier");
@@ -436,7 +477,7 @@ namespace Leantime\Domain\Plugins\Services {
             $data = $response->json();
 
             return build(new MarketplacePlugin())
-                ->set('identifier', $identifier ?? '')
+                ->set('identifier', $identifier)
                 ->set('name', $data['name'] ?? '')
                 ->set('icon', $data['icon'] ?? '')
                 ->set('description', nl2br($data['description'] ?? ''))
@@ -459,7 +500,9 @@ namespace Leantime\Domain\Plugins\Services {
          * @param string            $version
          * @return void
          * @throws Illuminate\Http\Client\RequestException|Exception
-         */
+         *
+     * @api
+     */
         public function installMarketplacePlugin(MarketplacePlugin $plugin, string $version): void
         {
 
@@ -544,7 +587,7 @@ namespace Leantime\Domain\Plugins\Services {
             $numberOfUsers = $this->usersService->getNumberOfUsers(activeOnly: true, includeApi: false);
             $instanceId = $this->settingsService->getCompanyId();
 
-            $response = Http::get($this->marketplaceUrl, [
+            $response = Http::withoutVerifying()->get($this->marketplaceUrl, [
                 'wp-api' => 'software-api',
                 'request' => 'check',
                 'product_id' => $plugin->id,
@@ -563,8 +606,10 @@ namespace Leantime\Domain\Plugins\Services {
         public function clearCache()
         {
 
-            session()->forget("commands.plugins");
-            session()->forget("enabledPlugins");
+            Cache::store('installation')->forget("domainEvents");
+            Cache::store('installation')->forget("commands");
+            Cache::store('installation')->forget("enabledPlugins");
+
             session()->forget("template_paths");
             session()->forget("composers");
         }

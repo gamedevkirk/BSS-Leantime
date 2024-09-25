@@ -2,9 +2,7 @@
 
 namespace Leantime\Domain\Widgets\Services;
 
-use Illuminate\Contracts\Container\BindingResolutionException;
-use Leantime\Core\Eventhelpers;
-use Leantime\Core\Service;
+use Leantime\Core\Events\DispatchesEvents;
 use Leantime\Domain\Setting\Repositories\Setting;
 use Leantime\Domain\Widgets\Models\Widget;
 
@@ -13,20 +11,26 @@ use Leantime\Domain\Widgets\Models\Widget;
  */
 class Widgets
 {
-    use Eventhelpers;
+    use DispatchesEvents;
 
     /**
      * @var array
+     *
+     * @api
      */
     public array $availableWidgets = [];
 
     /**
      * @var array
+     *
+     * @api
      */
     public array $defaultWidgets = [];
 
     /**
      * @var Setting
+     *
+     * @api
      */
     public Setting $settingRepo;
 
@@ -38,6 +42,7 @@ class Widgets
      * @param Setting $settingRepo The Setting repository object
      *
      * @return void
+     *
      */
     public function __construct(Setting $settingRepo)
     {
@@ -122,10 +127,12 @@ class Widgets
      * Retrieves all available widgets.
      *
      * @return array The array of available widgets.
+     *
+     * @api
      */
     public function getAll(): array
     {
-        return Eventhelpers::dispatch_filter("availableWidgets", $this->availableWidgets);
+        return DispatchesEvents::dispatch_filter("availableWidgets", $this->availableWidgets);
     }
 
     /**
@@ -133,6 +140,8 @@ class Widgets
      *
      * @param int $userId The ID of the user.
      * @return array The array of active widgets.
+     *
+     * @api
      */
     public function getActiveWidgets(int $userId): array
     {
@@ -176,6 +185,8 @@ class Widgets
      *
      * @param int $userId The ID of the user for whom the dashboard grid needs to be reset.
      * @return void
+     *
+     * @api
      */
     public function resetDashboard(int $userId): void
     {

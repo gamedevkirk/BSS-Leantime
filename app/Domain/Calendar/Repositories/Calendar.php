@@ -4,17 +4,15 @@ namespace Leantime\Domain\Calendar\Repositories;
 
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use Leantime\Core\Environment;
-use Leantime\Core\Language;
-use Leantime\Core\Repository as RepositoryCore;
-use Leantime\Core\Db as DbCore;
+use Leantime\Core\Configuration\Environment;
+use Leantime\Core\Db\Db as DbCore;
+use Leantime\Core\Db\Repository as RepositoryCore;
 use Leantime\Core\Language as LanguageCore;
 use Leantime\Core\Support\DateTimeHelper;
 use Leantime\Domain\Setting\Repositories\Setting;
 use Leantime\Domain\Tickets\Services\Tickets;
 use Leantime\Domain\Users\Repositories\Users;
 use PDO;
-use PHPUnit\Exception;
 
 /**
  *

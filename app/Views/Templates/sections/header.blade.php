@@ -3,14 +3,14 @@
 <meta name="description" content="{{ $sitename }}">
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-touch-fullscreen" content="yes">
 <meta name="theme-color" content="{{ $primaryColor }}">
 <meta name="color-scheme" content="{{ $themeColorMode }}">
 <meta name="theme" content="{{ $theme }}">
 <meta name="identifier-URL" content="{!! BASE_URL !!}">
 <meta name="leantime-version" content="{{ $version }}">
-<meta name="view-transition" content="same-origin" />
+<meta name="view-transition" content="same-origin"/>
 
 @dispatchEvent('afterMetaTags')
 
@@ -18,7 +18,7 @@
 <link rel="apple-touch-icon" href="{!! BASE_URL !!}/dist/images/apple-touch-icon.png">
 
 <link rel="stylesheet" href="{!! BASE_URL !!}/dist/css/main.{!! $version !!}.min.css"/>
-<link rel="stylesheet" href="{!! BASE_URL !!}/dist/css/app.{!! $version !!}.min.css" />
+<link rel="stylesheet" href="{!! BASE_URL !!}/dist/css/app.{!! $version !!}.min.css"/>
 
 @dispatchEvent('afterLinkTags')
 
@@ -43,13 +43,18 @@
 <script src="{!! BASE_URL !!}/dist/js/compiled-app.{!! $version !!}.min.js"></script>
 @dispatchEvent('afterMainScriptTag')
 
+<!--
+//For future file based ref js loading
+<script src="{!! BASE_URL !!}/dist/js/{{ ucwords(\Leantime\Core\Controller\Frontcontroller::getModuleName()) }}/Js/{{ \Leantime\Core\Controller\Frontcontroller::getModuleName() }}Controller.js"></script>
+-->
+
 <!-- theme & custom -->
 @foreach ($themeScripts as $script)
     <script src="{!! $script !!}"></script>
 @endforeach
 
 @foreach ($themeStyles as $style)
-    <link rel="stylesheet" @isset($style['id']) id="{{{ $style['id'] }}}" @endisset href="{!! $style['url'] !!}" />
+    <link rel="stylesheet" @isset($style['id']) id="{{{ $style['id'] }}}" @endisset href="{!! $style['url'] !!}"/>
 @endforeach
 
 @dispatchEvent('afterScriptsAndStyles')
@@ -58,11 +63,20 @@
 <style id="colorSchemeSetter">
     @foreach ($accents as $accent)
         @if($accent !== false)
-           :root { --accent{{ $loop->iteration }}: {{{ $accent }}}; }
-        @endif
+    :root {
+        --accent{{ $loop->iteration }}: {{{ $accent }}};
+    }
+    @endif
     @endforeach
 </style>
 
-<style id="fontStyleSetter">:root { --primary-font-family: '{{{ $themeFont }}}', 'Helvetica Neue', Helvetica, sans-serif; }</style>
+<style id="fontStyleSetter">:root {
+        --primary-font-family: '{{{ $themeFont }}}', 'Helvetica Neue', Helvetica, sans-serif;
+    }</style>
 
 @dispatchEvent('afterThemeColors')
+
+
+<script>
+    window.leantime.currentProject = '{{ session("currentProject") }}';
+</script>

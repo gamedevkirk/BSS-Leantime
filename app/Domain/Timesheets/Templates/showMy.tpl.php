@@ -293,7 +293,7 @@ jQuery(document).ready(function(){
                                     <a href="#/tickets/showTicket/<?php echo $timeRow['ticketId']; ?>"><?php $tpl->e($timeRow['headline']); ?></a>
                                 </td>
                                 <td width="10%">
-                                <?php echo $tpl->__($tpl->get('kind')[$timeRow['kind']]); ?>
+                                <?php echo $tpl->__($tpl->get('kind')[$row['kind'] ?? 'GENERAL_BILLABLE'] ?? $tpl->get('kind')['GENERAL_BILLABLE']); ?>
                             <?php if ($timeRow['hasTimesheetOffset']) { ?>
                                     <i class="fa-solid fa-clock-rotate-left pull-right label-blue"
                                        data-tippy-content="This entry was likely created using a different timezone. Only existing entries can be updated in this timezone">
@@ -367,7 +367,9 @@ jQuery(document).ready(function(){
                                 <div class="form-group" id="ticketSelect">
                                     <select data-placeholder="<?php echo $tpl->__('input.placeholders.choose_todo')?>" style="" class="ticket-select" name="ticketId">
                                         <option value=""></option>
-                                        <?php foreach ($tpl->get('allTickets') as $ticketRow) { ?>
+                                        <?php foreach ($tpl->get('allTickets') as $ticketRow) {
+                                            if(in_array($ticketRow['id'],$tpl->get('existingTicketIds'))) continue;
+                                            ?>
                                             <?php echo sprintf(
                                                 $tpl->dispatchTplFilter(
                                                     'todo_format',

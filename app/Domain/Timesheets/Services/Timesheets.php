@@ -2,6 +2,7 @@
 
 namespace Leantime\Domain\Timesheets\Services;
 
+use Carbon\Carbon;
 use Carbon\CarbonInterface;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Leantime\Core\Support\FromFormat;
@@ -30,6 +31,7 @@ class Timesheets
 
     /**
      * @param TimesheetRepository $timesheetsRepo
+     *
      */
     public function __construct(TimesheetRepository $timesheetsRepo, Users $userRepo)
     {
@@ -43,6 +45,8 @@ class Timesheets
      * @param int $sessionId
      *
      * @return array|false
+     *
+     * @api
      */
     public function isClocked(int $sessionId): false|array
     {
@@ -53,9 +57,12 @@ class Timesheets
      * @param int $ticketId
      *
      * @return mixed
+     *
+     * @api
      */
-    public function punchIn(int $ticketId): mixed
+    public function punchIn(int|string $ticketId): mixed
     {
+        $ticketId = (int)$ticketId;
         return $this->timesheetsRepo->punchIn($ticketId);
     }
 
@@ -63,9 +70,12 @@ class Timesheets
      * @param int $ticketId
      *
      * @return false|float|int
+     *
+     * @api
      */
-    public function punchOut(int $ticketId): float|false|int
+    public function punchOut(int|string $ticketId): float|false|int
     {
+        $ticketId = (int)$ticketId;
         return $this->timesheetsRepo->punchOut($ticketId);
     }
 
@@ -79,6 +89,8 @@ class Timesheets
      *
      * @throws BindingResolutionException
      * @throws MissingParameterException
+     *
+     * @api
      */
     public function logTime(int $ticketId, array $params): array|bool
     {
@@ -145,6 +157,8 @@ class Timesheets
      *
      * @throws MissingParameterException If any of the required parameters are missing.
      * @throws BindingResolutionException
+     *
+     * @api
      */
     public function upsertTime(int $ticketId, array $params): array|bool
     {
@@ -199,6 +213,8 @@ class Timesheets
      * @param int $ticketId
      *
      * @return array
+     *
+     * @api
      */
     public function getLoggedHoursForTicketByDate(int $ticketId): array
     {
@@ -209,6 +225,8 @@ class Timesheets
      * @param int $ticketId
      *
      * @return int|mixed
+     *
+     * @api
      */
     public function getSumLoggedHoursForTicket(int $ticketId): mixed
     {
@@ -228,6 +246,8 @@ class Timesheets
      * @param Tickets $ticket
      *
      * @return int|mixed
+     *
+     * @api
      */
     public function getRemainingHours(Tickets $ticket): mixed
     {
@@ -248,6 +268,8 @@ class Timesheets
      * @param int $userId
      *
      * @return int|mixed
+     *
+     * @api
      */
     public function getUsersTicketHours(int $ticketId, int $userId): mixed
     {
@@ -256,6 +278,8 @@ class Timesheets
 
     /**
      * @return array|string[]
+     *
+     * @api
      */
     public function getLoggableHourTypes(): array
     {
@@ -275,6 +299,8 @@ class Timesheets
      * @param string          $clientId
      *
      * @return array|false
+     *
+     * @api
      */
     public function getAll(CarbonInterface $dateFrom, CarbonInterface $dateTo, int $projectId = -1, string $kind = 'all', ?int $userId = null, string $invEmpl = '1', string $invComp = '1', string $ticketFilter = '-1', string $paid = '1', string $clientId = '-1'): array|false
     {
@@ -300,6 +326,8 @@ class Timesheets
      * @return array
      *
      * @throws BindingResolutionException
+     *
+     * @api
      */
     public function getWeeklyTimesheets(int $projectId, CarbonInterface $fromDate, int $userId = 0): array
     {
@@ -439,6 +467,8 @@ class Timesheets
      * @param array $paid
      *
      * @return bool
+     *
+     * @api
      */
     public function updateInvoices(array $invEmpl, array $invComp = [], array $paid = []): bool
     {
@@ -447,9 +477,84 @@ class Timesheets
 
     /**
      * @return array|string[]
+     *
+     * @api
      */
     public function getBookedHourTypes(): array
     {
         return $this->timesheetsRepo->kind;
+    }
+
+    /**
+     * @param ?int $projectId
+     * @return array
+     *
+     * @api
+     */
+    public function pollForNewTimesheets(?int $projectId = null): array|false
+    {
+        $timesheets = $this->timesheetsRepo->getAllAccountTimesheets($projectId);
+
+        foreach ($timesheets as $key => $timesheet) {
+          $timesheets[$key] = $this->prepareDatesForApiResponse($timesheet);
+        }
+
+        return $timesheets;
+
+    }
+
+    /**
+     * @param ?int $projectId
+     * @return array
+     *
+     * @api
+     */
+    public function pollForUpdatedTimesheets(?int $projectId = null): array|false
+    {
+        $timesheets = $this->timesheetsRepo->getAllAccountTimesheets($projectId);
+
+        foreach ($timesheets as $key => $timesheet) {
+            $timesheets[$key] = $this->prepareDatesForApiResponse($timesheet);
+            $timesheets[$key]['id'] = $timesheet['id'] . '-' . $timesheet['modified'];
+        }
+
+        return $timesheets;
+    }
+
+
+    private function prepareDatesForApiResponse($timesheet) {
+
+        if(dtHelper()->isValidDateString($timesheet['workDate'])) {
+            $timesheet['workDate'] = dtHelper()->parseDbDateTime($timesheet['workDate'])->toIso8601ZuluString();
+        } else {
+            $timesheet['workDate'] = null;
+        }
+
+        if(dtHelper()->isValidDateString($timesheet['invoicedEmplDate'])) {
+            $timesheet['invoicedEmplDate'] = dtHelper()->parseDbDateTime($timesheet['invoicedEmplDate'])->toIso8601ZuluString();
+        } else {
+            $timesheet['invoicedEmplDate'] = null;
+        }
+
+        if(dtHelper()->isValidDateString($timesheet['invoicedCompDate'])) {
+            $timesheet['invoicedCompDate'] = dtHelper()->parseDbDateTime($timesheet['invoicedCompDate'])->toIso8601ZuluString();
+        } else {
+            $timesheet['invoicedCompDate'] = null;
+        }
+
+        if(dtHelper()->isValidDateString($timesheet['paidDate'])) {
+            $timesheet['paidDate'] = dtHelper()->parseDbDateTime($timesheet['paidDate'])->toIso8601ZuluString();
+        } else {
+            $timesheet['paidDate'] = null;
+        }
+
+        if(dtHelper()->isValidDateString($timesheet['modified'])) {
+            $timesheet['modified'] = dtHelper()->parseDbDateTime($timesheet['modified'])->toIso8601ZuluString();
+        } else {
+            $timesheet['modified'] = null;
+        }
+
+        return $timesheet;
+
     }
 }

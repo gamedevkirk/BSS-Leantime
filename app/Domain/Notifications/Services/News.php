@@ -2,11 +2,8 @@
 
 namespace Leantime\Domain\Notifications\Services {
 
-    use DOMDocument;
-    use Illuminate\Contracts\Container\BindingResolutionException;
-    use Leantime\Core\Db as DbCore;
+    use Leantime\Core\Db\Db as DbCore;
     use Leantime\Core\Language as LanguageCore;
-    use Leantime\Core\Mailer as MailerCore;
     use Leantime\Domain\Notifications\Repositories\Notifications as NotificationRepository;
     use Leantime\Domain\Setting\Services\Setting;
     use Leantime\Domain\Users\Repositories\Users as UserRepository;
@@ -15,6 +12,8 @@ namespace Leantime\Domain\Notifications\Services {
 
     /**
      *
+     *
+     * @api
      */
     class News
     {
@@ -29,7 +28,9 @@ namespace Leantime\Domain\Notifications\Services {
          * __construct - get database connection
          *
          * @access public
-         */
+         *
+     * @api
+     */
         public function __construct(
             DbCore $db,
             NotificationRepository $notificationsRepo,
@@ -87,7 +88,9 @@ namespace Leantime\Domain\Notifications\Services {
          * @access public
          * @return \SimpleXMLElement - The parsed XML content as a SimpleXMLElement object
          * @throws \Exception - If the simplexml_load_string function doesn't exist
-         */
+         *
+     * @api
+     */
         public function getFeed()
         {
 

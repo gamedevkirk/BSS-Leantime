@@ -10,11 +10,9 @@ namespace Leantime\Domain\Calendar\Controllers;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ClientException;
 use Illuminate\Contracts\Container\BindingResolutionException;
-use JetBrains\PhpStorm\NoReturn;
-use Leantime\Core\AppSettings;
-use Leantime\Core\Controller;
+use Leantime\Core\Configuration\AppSettings;
+use Leantime\Core\Controller\Controller;
 use Leantime\Domain\Calendar\Repositories\Calendar as CalendarRepository;
-use Symfony\Component\HttpFoundation\Response;
 
 /**
  *
@@ -62,9 +60,14 @@ class ExternalCal extends Controller
             $cal = $this->calendarRepo->getExternalCalendar($calId, session("userdata.id"));
 
             if (isset($cal["url"])) {
-                $content = $this->loadIcalUrl($cal["url"]);
-                session(["calendarCache.".$calId.".lastUpdate" => time()]);
-                session(["calendarCache.".$calId."content" => $content]);
+
+                try {
+                    $content = $this->loadIcalUrl($cal["url"]);
+                    session(["calendarCache." . $calId . ".lastUpdate" => time()]);
+                    session(["calendarCache." . $calId . "content" => $content]);
+                }catch(\Exception $e) {
+                    $content = "";
+                }
             }
         }
 
@@ -96,6 +99,7 @@ class ExternalCal extends Controller
         }
 
         try {
+
             $response = $guzzle->request('GET', $url, [
                 'headers' => [
                     'Accept' => 'text/calendar',

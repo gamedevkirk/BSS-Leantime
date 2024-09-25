@@ -6,6 +6,8 @@ namespace Leantime\Domain\Goalcanvas\Services {
 
     /**
      *
+     *
+     * @api
      */
     class Goalcanvas
     {
@@ -18,7 +20,8 @@ namespace Leantime\Domain\Goalcanvas\Services {
 
         /**
          * @param GoalcanvaRepository $goalRepository
-         */
+         *
+     */
         public function __construct(GoalcanvaRepository $goalRepository)
         {
             $this->goalRepository = $goalRepository;
@@ -27,7 +30,9 @@ namespace Leantime\Domain\Goalcanvas\Services {
         /**
          * @param int $id
          * @return array
-         */
+         *
+     * @api
+     */
         public function getCanvasItemsById(int $id): array
         {
 
@@ -63,11 +68,15 @@ namespace Leantime\Domain\Goalcanvas\Services {
         /**
          * @param $parentId
          * @return int|mixed
-         */
+         *
+     * @api
+     */
         /**
          * @param $parentId
          * @return int|mixed
-         */
+         *
+     * @api
+     */
         public function getChildGoalsForReporting($parentId): mixed
         {
 
@@ -92,7 +101,9 @@ namespace Leantime\Domain\Goalcanvas\Services {
         /**
          * @param $parentId
          * @return array
-         */
+         *
+     * @api
+     */
         public function getChildrenbyKPI($parentId): array
         {
 
@@ -143,7 +154,9 @@ namespace Leantime\Domain\Goalcanvas\Services {
         /**
          * @param $projectId
          * @return array
-         */
+         *
+     * @api
+     */
         public function getParentKPIs($projectId): array
         {
 
@@ -172,19 +185,98 @@ namespace Leantime\Domain\Goalcanvas\Services {
             return $goals;
         }
 
-        public function updateGoalboard($values) {
+        public function updateGoalboard($values)
+        {
             return $this->goalRepository->updateCanvas($values);
         }
 
-        public function createGoalboard($values) {
+        public function createGoalboard($values)
+        {
             return $this->goalRepository->addCanvas($values);
         }
 
-        public function getSingleCanvas($id) {
+        public function getSingleCanvas($id)
+        {
             return $this->goalRepository->getSingleCanvas($id);
         }
 
+        /**
+         * @param array $values
+         * @return int
+         *
+         * @api
+         */
+        public function createGoal($values)
+        {
+            return $this->goalRepository->createGoal($values);
+        }
 
+        /**
+         * @param ?int $projectId
+         * @param ?int $board
+         * @return array
+         *
+         * @api
+         */
+        public function pollGoals(?int $projectId = null, ?int $board = null)
+        {
+            $goals = $this->goalRepository->getAllAccountGoals($projectId, $board);
+
+            foreach ($goals as $key => $goal) {
+                $goals[$key] = $this->prepareDatesForApiResponse($goal);
+            }
+
+            return $goals;
+        }
+
+        /**
+         * @param ?int $projectId
+         * @param ?int $board
+         * @return array
+         *
+         * @api
+         */
+        public function pollForUpdatedGoals(?int $projectId = null, ?int $board = null): array|false
+        {
+
+            $goals = $this->goalRepository->getAllAccountGoals($projectId, $board);
+
+            foreach ($goals as $key => $goal) {
+                $goals[$key] = $this->prepareDatesForApiResponse($goal);
+                $goals[$key]['id'] = $goal['id'] . '-' . $goal['modified'];
+            }
+
+            return $goals;
+        }
+
+        private function prepareDatesForApiResponse($goal) {
+
+            if(dtHelper()->isValidDateString($goal['created'])) {
+                $goal['created'] = dtHelper()->parseDbDateTime($goal['created'])->toIso8601ZuluString();
+            }else{
+                $goal['created'] = null;
+            }
+
+            if(dtHelper()->isValidDateString($goal['modified'])) {
+                $goal['modified'] = dtHelper()->parseDbDateTime($goal['modified'])->toIso8601ZuluString();
+            }else{
+                $goal['modified'] = null;
+            }
+
+            if(dtHelper()->isValidDateString($goal['startDate'])) {
+                $goal['startDate'] = dtHelper()->parseDbDateTime($goal['startDate'])->toIso8601ZuluString();
+            }else{
+                $goal['startDate'] = null;
+            }
+
+            if(dtHelper()->isValidDateString($goal['endDate'])) {
+                $goal['endDate'] = dtHelper()->parseDbDateTime($goal['endDate'])->toIso8601ZuluString();
+            }else{
+                $goal['endDate'] = null;
+            }
+
+            return $goal;
+
+        }
     }
-
 }
