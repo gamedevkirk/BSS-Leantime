@@ -398,6 +398,7 @@ $ticketTypes = $tpl->get('ticketTypes');
                         </div>
                     </div>
 
+                    <!--
                     <div class="form-group">
                         <label class=" control-label"><?php echo $tpl->__('label.booked_hours'); ?></label>
                         <div class="">
@@ -412,7 +413,7 @@ $ticketTypes = $tpl->get('ticketTypes');
                             <input type="text" disabled="disabled" value="<?php echo $remainingHours; ?>" style="width:90px;"/>
                         </div>
                     </div>
-
+                    -->
                 </div>
             </div>
         </div>

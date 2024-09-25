@@ -81,7 +81,9 @@ $todoTypeIcons  = $tpl->get("ticketTypeIcons");
             <li><a href="#ticketdetails"><span class="fa fa-star"></span> <?php echo $tpl->__("tabs.ticketDetails") ?></a></li>
             <li><a href="#files"><span class="fa fa-file"></span> <?php echo $tpl->__("tabs.files") ?> (<?php echo $tpl->get('numFiles'); ?>)</a></li>
             <?php if ($login::userIsAtLeast($roles::$editor)) {  ?>
+                <!--
                 <li><a href="#timesheet"><span class="fa fa-clock"></span> <?php echo $tpl->__("tabs.time_tracking") ?></a></li>
+                -->
             <?php } ?>
             <?php $tpl->dispatchTplEvent('ticketTabs', ['ticket' => $ticket]); ?>
         </ul>

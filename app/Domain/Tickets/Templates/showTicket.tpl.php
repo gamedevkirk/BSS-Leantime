@@ -36,7 +36,9 @@ $projectData = $tpl->get('projectData');
                 <li><a href="#subtasks"><?php echo $tpl->__('tabs.subtasks') ?> (<?php echo $tpl->get('numSubTasks'); ?>)</a></li>
                 <li><a href="#files"><?php echo $tpl->__("tabs.files") ?> (<?php echo $tpl->get('numFiles'); ?>)</a></li>
                 <?php if (session("userdata.role") != "client") { ?>
+                    <!--
                     <li><a href="#timesheet" id="timesheetTab"><?php echo $tpl->__("tabs.time_tracking") ?></a></li>
+                    -->
                 <?php } ?>
             </ul>
 
