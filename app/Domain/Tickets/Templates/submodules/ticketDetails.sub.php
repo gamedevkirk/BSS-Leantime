@@ -380,7 +380,6 @@ $ticketTypes = $tpl->get('ticketTypes');
                     </a>
                 </h5>
                 <div class="simpleAccordionContainer" id="accordion_content-tickets-timetracking" style="padding-left:0">
-
                     <div class="form-group">
                         <label class=" control-label"><?php echo $tpl->__('label.planned_hours'); ?></label>
                         <div class="">
@@ -397,23 +396,6 @@ $ticketTypes = $tpl->get('ticketTypes');
                             </a>
                         </div>
                     </div>
-
-                    <!--
-                    <div class="form-group">
-                        <label class=" control-label"><?php echo $tpl->__('label.booked_hours'); ?></label>
-                        <div class="">
-                            <input type="text" disabled="disabled"
-                                   value="<?php echo $tpl->get('timesheetsAllHours'); ?>" style="width:90px;"/>
-                        </div>
-                    </div>
-
-                    <div class="form-group">
-                        <label class=" control-label"><?php echo $tpl->__('label.actual_hours_remaining'); ?></label>
-                        <div class="">
-                            <input type="text" disabled="disabled" value="<?php echo $remainingHours; ?>" style="width:90px;"/>
-                        </div>
-                    </div>
-                    -->
                 </div>
             </div>
         </div>

@@ -35,11 +35,6 @@ $projectData = $tpl->get('projectData');
                 <li><a href="#ticketdetails"><?php echo $tpl->__("tabs.ticketDetails") ?></a></li>
                 <li><a href="#subtasks"><?php echo $tpl->__('tabs.subtasks') ?> (<?php echo $tpl->get('numSubTasks'); ?>)</a></li>
                 <li><a href="#files"><?php echo $tpl->__("tabs.files") ?> (<?php echo $tpl->get('numFiles'); ?>)</a></li>
-                <?php if (session("userdata.role") != "client") { ?>
-                    <!--
-                    <li><a href="#timesheet" id="timesheetTab"><?php echo $tpl->__("tabs.time_tracking") ?></a></li>
-                    -->
-                <?php } ?>
             </ul>
 
             <div id="ticketdetails">
@@ -59,13 +54,6 @@ $projectData = $tpl->get('projectData');
                     <?php $tpl->displaySubmodule('tickets-attachments') ?>
                 </form>
             </div>
-
-
-            <?php if (session("userdata.role") != "client") { ?>
-                <div id="timesheet">
-                    <?php $tpl->displaySubmodule('tickets-timesheet') ?>
-                </div>
-            <?php } ?>
         </div>
 
     </div>
